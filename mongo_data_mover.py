@@ -1,7 +1,3 @@
-"""
-This script moves data from one Mongo collection to another. Additionally,
-the records can be altered by passing in an optional 'transform' function.
-"""
 from unittest import TestCase
 from pymongo import MongoClient
 from mongomock import Connection as MongoMock
@@ -17,18 +13,19 @@ def move_records(from_db, from_coll, to_db, to_coll, transform=None,
         to/from databases and collections.
     @transform: Function that can alter the records before inserting them into
         the new collection. By default there will be no transformation.
-    @client: MongoClient object that corresponds to the Mongo instance we are
-        communicating with. Connects to local mongo instance by default.
     @query: Mongo query object if we want to iterate over a particular subset
         of data instead of the entire collection.
+    @client: MongoClient object that corresponds to the Mongo instance we are
+        communicating with. Connects to local mongo instance by default.
     """
-    from_collection = client[from_db][from_coll]
-    to_collection = client[to_db][to_coll]
-    total_records = from_collection.count()
     # We will iterate over all records unless a particular query is specified
     query = query or {}
+    from_collection = client[from_db][from_coll]
+    to_collection = client[to_db][to_coll]
+    total_records = from_collection.count(query)
     # We will use the transform function passed in or by default do nothing
-    transform = transform or lambda x: x
+    no_transfom = lambda x: x
+    transform = transform or no_transform
     # Iterate over the records in from_collection.
     for index, record in enumerate(from_collection.find(query)):
         # Transform them using the transform function or default (lambda x: x)
@@ -39,7 +36,7 @@ def move_records(from_db, from_coll, to_db, to_coll, transform=None,
         except:
         # If the result is a failure, we want to append the record to a file.
             with open('failures.txt', 'a') as failures:
-                failures.write(record)
+                failures.write(str(record))
         print '{} out of {} records copied\r'.format(index + 1, total_records),
     finished_string = '\nCopying data from {}.{} to {}.{} completed.'
     print finished_string.format(from_db, from_coll, to_db, to_coll)
