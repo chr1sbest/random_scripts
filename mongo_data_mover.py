@@ -1,15 +1,25 @@
+"""
+Script to move records from one collection in Mongo to another.
+
+Supports:
+    - Transformation of individual records
+    - Any collection to any collection
+    - Any database to any database
+    - Remote client connection, mock connection, etc.
+    - Subset querying to move segments of data
+"""
 from unittest import TestCase
 from pymongo import MongoClient
 from mongomock import Connection as MongoMock
 
-def move_records(from_db, from_coll, to_db, to_coll, transform=None, 
+def move_records(from_db, from_coll, to_db, to_coll, transform=None,
                  query=None, client=MongoClient('localhost')):
     """
     Iterate through all records in a collection and copy them over to a new
     collection. Records failures in failures.txt within the directory that the
     script is executed from.
 
-    @from_db, from_coll, to_db, to_coll: Strings that correspond to the 
+    @from_db, from_coll, to_db, to_coll: Strings that correspond to the
         to/from databases and collections.
     @transform: Function that can alter the records before inserting them into
         the new collection. By default there will be no transformation.
@@ -22,9 +32,9 @@ def move_records(from_db, from_coll, to_db, to_coll, transform=None,
     query = query or {}
     from_collection = client[from_db][from_coll]
     to_collection = client[to_db][to_coll]
-    total_records = from_collection.find(query).count()
+    total_records = from_collection.count(query)
     # We will use the transform function passed in or by default do nothing
-    no_transfom = lambda x: x
+    no_transform = lambda x: x
     transform = transform or no_transform
     # Iterate over the records in from_collection.
     for index, record in enumerate(from_collection.find(query)):
@@ -41,7 +51,11 @@ def move_records(from_db, from_coll, to_db, to_coll, transform=None,
     finished_string = '\nCopying data from {}.{} to {}.{} completed.'
     print finished_string.format(from_db, from_coll, to_db, to_coll)
 
+###############################################################################
+## Unit Tests ##
+################
 class TestMoveRecords(TestCase):
+    """Unit Test class for move_records."""
     def setUp(self):
         """ Set up MongoMock collections and databases """
         self.client = MongoMock()
@@ -49,11 +63,9 @@ class TestMoveRecords(TestCase):
         self.to_collection = self.client.to_db.to_coll
         self.from_collection.insert({'name':'testing1', 'value': 5})
         self.from_collection.insert({'name':'testing2', 'value': 10})
-    
-    def testMoveRecords(self):
-        """
-        Tests that records are moved from one collection to another
-        """
+
+    def test_move_records(self):
+        """Tests that records are moved from one collection to another."""
         move_records('from_db', 'from_coll', 'to_db', 'to_coll',
                      client=self.client)
         testing1 = self.to_collection.find_one({'name': 'testing1'})
@@ -61,7 +73,7 @@ class TestMoveRecords(TestCase):
         self.assertEquals(testing1['value'], 5)
         self.assertEquals(testing2['value'], 10)
 
-    def testTransform(self):
+    def test_transform(self):
         """
         Test that we are able to define and pass in a transform function
         that will alter the resulting data in the to_collection.
