@@ -32,7 +32,7 @@ def move_records(from_db, from_coll, to_db, to_coll, transform=None,
     query = query or {}
     from_collection = client[from_db][from_coll]
     to_collection = client[to_db][to_coll]
-    total_records = from_collection.count(query)
+    total_records = from_collection.find(query).count()
     # We will use the transform function passed in or by default do nothing
     no_transform = lambda x: x
     transform = transform or no_transform
