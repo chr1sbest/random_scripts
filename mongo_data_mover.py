@@ -45,7 +45,8 @@ def move_records(from_db, from_coll, to_db, to_coll, transform=None,
             result = to_collection.insert(transformed_record)
         except:
         # If the result is a failure, we want to append the record to a file.
-            with open('failures.txt', 'a') as failures:
+            failure_file = 'move-{}-to-{}.err'format(from_coll, to_coll)
+            with open(failure_file, 'a') as failures:
                 failures.write(str(record))
         print '{} out of {} records copied\r'.format(index + 1, total_records),
     finished_string = '\nCopying data from {}.{} to {}.{} completed.'
